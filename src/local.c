@@ -1732,6 +1732,14 @@ main(int argc, char **argv)
 
 #else
 
+// Callback invoked on pthread_cancel.
+void
+pthread_cleanup_cb(void *arg)
+{
+  struct ev_loop *loop = (struct ev_loop *)arg;
+  ev_unloop(loop, EVUNLOOP_ALL);
+}
+
 int
 start_ss_local_server(profile_t profile, ss_local_callback init_callback, void *udata)
 {
@@ -1846,8 +1854,10 @@ start_ss_local_server(profile_t profile, ss_local_callback init_callback, void *
         init_callback(listen_ctx.fd, udp_fd, udata);
     }
 
+    pthread_cleanup_push(pthread_cleanup_cb, loop);
     // Enter the loop
     ev_run(loop, 0);
+    pthread_cleanup_pop(1);
 
     if (verbose) {
         LOGI("closed gracefully");
